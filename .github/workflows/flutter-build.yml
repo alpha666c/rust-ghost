@@ -51,6 +51,8 @@ env:
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
+  # self-signed Authenticode cert (see USAGE.md) - CI signs with it, managed devices trust it locally
+  WINDOWS_PFX_BASE64: "${{ secrets.WINDOWS_PFX_BASE64 }}"
 
 jobs:
   generate-bridge:
@@ -329,6 +331,13 @@ jobs:
           pip3 install requests argparse
           BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./rustdesk/
 
+      - name: Sign rustdesk files (self-signed)
+        if: env.UPLOAD_ARTIFACT == 'true' && env.WINDOWS_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+        run: ./res/sign-windows.ps1 -TargetDir ./rustdesk
+
       - name: Build self-extracted executable
         shell: bash
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -364,6 +373,13 @@ jobs:
         shell: bash
         run: |
           BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput
+
+      - name: Sign rustdesk self-extracted file (self-signed)
+        if: env.UPLOAD_ARTIFACT == 'true' && env.WINDOWS_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+        run: ./res/sign-windows.ps1 -TargetDir ./SignOutput
 
       - name: Publish Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
@@ -501,6 +517,13 @@ jobs:
           pip3 install requests argparse
           BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./Release/
 
+      - name: Sign rustdesk files (self-signed)
+        if: env.UPLOAD_ARTIFACT == 'true' && env.WINDOWS_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+        run: ./res/sign-windows.ps1 -TargetDir ./Release
+
       - name: Build self-extracted executable
         shell: bash
         run: |
@@ -517,6 +540,13 @@ jobs:
         shell: bash
         run: |
           BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput/
+
+      - name: Sign rustdesk self-extracted file (self-signed)
+        if: env.UPLOAD_ARTIFACT == 'true' && env.WINDOWS_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+        run: ./res/sign-windows.ps1 -TargetDir ./SignOutput
 
       - name: Publish Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1

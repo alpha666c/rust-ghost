@@ -1,5 +1,6 @@
 <p align="center">
   <img src="res/logo-header.svg" alt="Ghost Desk"><br>
+  <a href="USAGE.md">Usage guide</a> •
   <a href="#self-hosted-defaults">Self-hosted defaults</a> •
   <a href="#support-mode-and-managed-mode">Support / Managed Mode</a> •
   <a href="#platform-support">Platforms</a> •
