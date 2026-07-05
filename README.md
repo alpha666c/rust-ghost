@@ -1,182 +1,170 @@
 <p align="center">
-  <img src="res/logo-header.svg" alt="RustDesk - Your remote desktop"><br>
+  <img src="res/logo-header.svg" alt="Ghost Desk"><br>
+  <a href="#self-hosted-defaults">Self-hosted defaults</a> •
+  <a href="#support-mode-and-managed-mode">Support / Managed Mode</a> •
+  <a href="#platform-support">Platforms</a> •
   <a href="#raw-steps-to-build">Build</a> •
-  <a href="#how-to-build-with-docker">Docker</a> •
-  <a href="#file-structure">Structure</a> •
-  <a href="#snapshot">Snapshot</a><br>
-  [<a href="docs/README-UA.md">Українська</a>] | [<a href="docs/README-CS.md">česky</a>] | [<a href="docs/README-ZH.md">中文</a>] | [<a href="docs/README-HU.md">Magyar</a>] | [<a href="docs/README-ES.md">Español</a>] | [<a href="docs/README-FA.md">فارسی</a>] | [<a href="docs/README-FR.md">Français</a>] | [<a href="docs/README-DE.md">Deutsch</a>] | [<a href="docs/README-PL.md">Polski</a>] | [<a href="docs/README-ID.md">Indonesian</a>] | [<a href="docs/README-FI.md">Suomi</a>] | [<a href="docs/README-ML.md">മലയാളം</a>] | [<a href="docs/README-JP.md">日本語</a>] | [<a href="docs/README-NL.md">Nederlands</a>] | [<a href="docs/README-IT.md">Italiano</a>] | [<a href="docs/README-RU.md">Русский</a>] | [<a href="docs/README-PTBR.md">Português (Brasil)</a>] | [<a href="docs/README-EO.md">Esperanto</a>] | [<a href="docs/README-KR.md">한국어</a>] | [<a href="docs/README-AR.md">العربي</a>] | [<a href="docs/README-VN.md">Tiếng Việt</a>] | [<a href="docs/README-DA.md">Dansk</a>] | [<a href="docs/README-GR.md">Ελληνικά</a>] | [<a href="docs/README-TR.md">Türkçe</a>] | [<a href="docs/README-NO.md">Norsk</a>] | [<a href="docs/README-RO.md">Română</a>]<br>
-  <b>We need your help to translate this README, <a href="https://github.com/rustdesk/rustdesk/tree/master/src/lang">RustDesk UI</a> and <a href="https://github.com/rustdesk/doc.rustdesk.com">RustDesk Doc</a> to your native language</b>
+  <a href="#file-structure">Structure</a>
 </p>
 
 > [!Caution]
 > **Misuse Disclaimer:** <br>
-> The developers of RustDesk do not condone or support any unethical or illegal use of this software. Misuse, such as unauthorized access, control or invasion of privacy, is strictly against our guidelines. The authors are not responsible for any misuse of the application.
+> Ghost Desk is a remote access and remote support tool. Misuse — unauthorized access, control, or invasion of privacy — is strictly against our guidelines. Only connect to devices you own or are explicitly authorized to support.
 
+## What is Ghost Desk
 
-Chat with us: [Discord](https://discord.gg/nDceKgxnkV) | [Twitter](https://twitter.com/rustdesk) | [Reddit](https://www.reddit.com/r/rustdesk) | [YouTube](https://www.youtube.com/@rustdesk)
+Ghost Desk is our branded remote-support and remote-access client, built on top of
+[RustDesk](https://github.com/rustdesk/rustdesk) (AGPL-3.0). RustDesk supplies the
+remote-control engine — screen capture, input, networking, encryption; Ghost Desk is the
+product layer on top: our branding, our self-hosted server defaults, and onboarding
+designed for non-technical end users being helped by an operator.
 
-[![RustDesk Server Pro](https://img.shields.io/badge/RustDesk%20Server%20Pro-Advanced%20Features-blue)](https://rustdesk.com/pricing.html)
+Ghost Desk is a separate repo/product from **Ghostline** (our onboarding, customer
+workflow, and operator platform). Ghostline drives the workflow; Ghost Desk is the
+client that actually establishes the remote session.
 
-Yet another remote desktop solution, written in Rust. Works out of the box with no configuration required. You have full control of your data, with no concerns about security. You can use our rendezvous/relay server, [set up your own](https://rustdesk.com/server), or [write your own rendezvous/relay server](https://github.com/rustdesk/rustdesk-server-demo).
+We do not fork the engine to rewrite it — protocol, capture, and input handling stay as
+upstream RustDesk provides them. Our changes live in a small, clearly-scoped layer on top
+(see [`src/ghost_desk.rs`](src/ghost_desk.rs)).
 
-![image](https://user-images.githubusercontent.com/71636191/171661982-430285f0-2e12-4b1d-9957-4a58e375304d.png)
+## Self-hosted defaults
 
-RustDesk welcomes contribution from everyone. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for help getting started.
+Ghost Desk ships preconfigured to reach our own self-hosted `rustdesk-server`
+(hbbs/hbbr) instance, instead of the public RustDesk relay network. This is implemented
+in [`src/ghost_desk.rs`](src/ghost_desk.rs), which is the single place Ghost Desk
+diverges from stock RustDesk defaults:
 
-[**FAQ**](https://github.com/rustdesk/rustdesk/wiki/FAQ)
+- It does **not** patch the RustDesk/`hbb_common` engine. It only populates the override
+  points (`DEFAULT_SETTINGS`, `APP_NAME`) that `hbb_common::config` already exposes for
+  white-labeled clients.
+- Defaults (ID/relay server host, server public key, app name) are baked in at **compile
+  time** via `option_env!`, so a build can be re-pointed at a different server or brand
+  without touching source:
 
-[**BINARY DOWNLOAD**](https://github.com/rustdesk/rustdesk/releases)
+  ```sh
+  GHOST_DESK_ID_SERVER=dev.example.com \
+  GHOST_DESK_RELAY_SERVER=dev.example.com \
+  GHOST_DESK_SERVER_KEY=<base64 pubkey> \
+  GHOST_DESK_APP_NAME="Ghost Desk Dev" \
+  cargo build
+  ```
 
-[**NIGHTLY BUILD**](https://github.com/rustdesk/rustdesk/releases/tag/nightly)
+  Unset any of these and the build falls back to our production self-hosted server.
+  This keeps local/dev builds simple (no env vars needed) while making it trivial for CI
+  to bake in a different server per build channel.
 
-[<img src="https://f-droid.org/badge/get-it-on.png"
-    alt="Get it on F-Droid"
-    height="80">](https://f-droid.org/en/packages/com.carriez.flutter_hbb)
-[<img src="https://flathub.org/api/badge?svg&locale=en"
-    alt="Get it on Flathub"
-    height="80">](https://flathub.org/apps/com.rustdesk.RustDesk)
+- These are **defaults**, not forced values — end users can still override the ID/relay
+  server and key from Settings > Network at any time. The self-hosted values only apply
+  when nothing else (user config, `custom.txt`, an admin override) has already set them.
 
-## Dependencies
+### Optional: baked-in preset permanent password
 
-Desktop versions use Flutter or Sciter (deprecated) for GUI, this tutorial is for Sciter only, since it is easier and more friendly to start. Check out our [CI](https://github.com/rustdesk/rustdesk/blob/master/.github/workflows/flutter-build.yml) for building Flutter version.
-
-Please download Sciter dynamic library yourself.
-
-[Windows](https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.win/x64/sciter.dll) |
-[Linux](https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.lnx/x64/libsciter-gtk.so) |
-[macOS](https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.osx/libsciter.dylib)
-
-## Raw Steps to build
-
-- Prepare your Rust development env and C++ build env
-
-- Install [vcpkg](https://github.com/microsoft/vcpkg), and set `VCPKG_ROOT` env variable correctly
-
-  - Windows: vcpkg install libvpx:x64-windows-static libyuv:x64-windows-static opus:x64-windows-static aom:x64-windows-static
-  - Linux/macOS: vcpkg install libvpx libyuv opus aom
-
-- run `cargo run`
-
-## [Build](https://rustdesk.com/docs/en/dev/build/)
-
-## How to Build on Linux
-
-### Ubuntu 18 (Debian 10)
-
-```sh
-sudo apt install -y zip g++ gcc git curl wget nasm yasm libgtk-3-dev clang libxcb-randr0-dev libxdo-dev \
-        libxfixes-dev libxcb-shape0-dev libxcb-xfixes0-dev libasound2-dev libpulse-dev cmake make \
-        libclang-dev ninja-build libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libpam0g-dev
-```
-
-### openSUSE Tumbleweed
+For managing enrolled work devices, a build can also bake in a **preset permanent
+password**, so an install is immediately controllable without the end user setting
+anything up:
 
 ```sh
-sudo zypper install gcc-c++ git curl wget nasm yasm gcc gtk3-devel clang libxcb-devel libXfixes-devel cmake alsa-lib-devel gstreamer-devel gstreamer-plugins-base-devel xdotool-devel pam-devel
+GHOST_DESK_PRESET_PASSWORD=<shared password> \
+GHOST_DESK_PRESET_PASSWORD_SALT=<any fixed string, optional> \
+cargo build
 ```
 
-### Fedora 28 (CentOS 8)
+Notes:
 
-```sh
-sudo yum -y install gcc-c++ git curl wget nasm yasm gcc gtk3-devel clang libxcb-devel libxdo-devel libXfixes-devel pulseaudio-libs-devel cmake alsa-lib-devel gstreamer1-devel gstreamer1-plugins-base-devel pam-devel
-```
+- This is a **shared password baked into that build/APK** — every device installed from
+  the same build accepts the same password. It is not per-device and there is no
+  auto-generated device inventory; track which devices you've deployed to yourself for
+  now (e.g. a spreadsheet) until a real fleet dashboard exists on the Ghostline side.
+- It uses RustDesk's existing preset-password mechanism (`HARD_SETTINGS["password"]` /
+  `["salt"]`), the same override point RustDesk Server Pro uses for managed deployments —
+  we're not inventing new password storage, just baking a value into it at compile time.
+- The password is stored hashed (SHA-256 + salt), never in plaintext, in the built
+  binary. Still, treat it like any shared credential: rotating it means rebuilding and
+  redeploying, and anyone who extracts it from the binary has full remote control of
+  every device on that build — don't reuse it across a build meant to be distributed
+  publicly.
+- End users still see RustDesk's standard "a permanent password is preset by your
+  administrator" notice in Settings > Security, and can set a local password that
+  overrides the preset one on their own device. This is disclosure, not a loophole:
+  a fully hidden/unremovable password isn't something this mechanism (or RustDesk's) is
+  built for.
+- Leave it unset for a normal build (e.g. anything meant for public distribution or
+  Support Mode) — no preset password is baked in by default.
 
-### Arch (Manjaro)
+## Support Mode and Managed Mode
 
-```sh
-sudo pacman -Syu --needed unzip git cmake gcc curl wget yasm nasm zip make pkg-config clang gtk3 xdotool libxcb libxfixes alsa-lib pipewire
-```
+Ghost Desk frames two connection workflows for non-technical users, on top of RustDesk's
+existing session model:
 
-### Install vcpkg
+- **Support Mode** — a one-time support session. The end user opens the app, shares an
+  ID/password with an operator (e.g. via Ghostline), and the connection ends when the
+  session is closed. No lasting access is retained.
+- **Managed Mode** — persistent/recurring managed access, for devices under ongoing
+  support (e.g. a permanent password or unattended-access setup, deployed once).
 
-```sh
-git clone https://github.com/microsoft/vcpkg
-cd vcpkg
-git checkout 2023.04.15
-cd ..
-vcpkg/bootstrap-vcpkg.sh
-export VCPKG_ROOT=$HOME/vcpkg
-vcpkg/vcpkg install libvpx libyuv opus aom
-```
+This is currently a naming/UX framing on top of RustDesk's existing password and
+unattended-access mechanisms; dedicated onboarding screens for each mode are planned but
+not yet built — see the transformation plan for phasing.
 
-### Fix libvpx (For Fedora)
+## Platform support
 
-```sh
-cd vcpkg/buildtrees/libvpx/src
-cd *
-./configure
-sed -i 's/CFLAGS+=-I/CFLAGS+=-fPIC -I/g' Makefile
-sed -i 's/CXXFLAGS+=-I/CXXFLAGS+=-fPIC -I/g' Makefile
-make
-cp libvpx.a $HOME/vcpkg/installed/x64-linux/lib/
-cd
-```
+Ghost Desk preserves RustDesk's cross-platform reach. Priority order for this product:
 
-### Build
+1. **Desktop (Windows / macOS / Linux)** — full parity with upstream RustDesk.
+2. **Android** — full parity with upstream RustDesk, with caveats below.
+3. Other platforms (iOS, web) continue to build but are not a current focus.
 
-```sh
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source $HOME/.cargo/env
-git clone --recurse-submodules https://github.com/rustdesk/rustdesk
-cd rustdesk
-mkdir -p target/debug
-wget https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.lnx/x64/libsciter-gtk.so
-mv libsciter-gtk.so target/debug
-VCPKG_ROOT=$HOME/vcpkg cargo run
-```
+### Android-specific limitations
 
-## How to build with Docker
+Android's permission model constrains what a remote-support app can do out of the box.
+When setting expectations with non-technical users:
 
-Begin by cloning the repository and building the Docker container:
+- **Screen sharing/control requires the Accessibility service** ("Ghost Desk Input") to
+  be enabled manually in system settings — this cannot be granted programmatically.
+- **Unattended/background operation** is fought by Android's battery optimization; users
+  must exclude Ghost Desk from battery optimizations for reliable unattended access.
+- **Input injection** (remote-controlling the Android device) depends on the
+  Accessibility service above and is not available on all OEM Android builds/versions.
+- Recent Android versions increasingly restrict foreground services and background
+  starts; some flows require the app to be open/foregrounded at least once per boot.
 
-```sh
-git clone https://github.com/rustdesk/rustdesk
-cd rustdesk
-git submodule update --init --recursive
-docker build -t "rustdesk-builder" .
-```
+These are Android platform constraints, not Ghost Desk-specific bugs — see upstream
+RustDesk's Android documentation for background.
 
-Then, each time you need to build the application, run the following command:
+## Raw steps to build
 
-```sh
-docker run --rm -it -v $PWD:/home/user/rustdesk -v rustdesk-git-cache:/home/user/.cargo/git -v rustdesk-registry-cache:/home/user/.cargo/registry -e PUID="$(id -u)" -e PGID="$(id -g)" rustdesk-builder
-```
+- Prepare your Rust development env and C++ build env.
+- Install [vcpkg](https://github.com/microsoft/vcpkg), and set `VCPKG_ROOT` correctly:
+  - Windows: `vcpkg install libvpx:x64-windows-static libyuv:x64-windows-static opus:x64-windows-static aom:x64-windows-static`
+  - Linux/macOS: `vcpkg install libvpx libyuv opus aom`
+- `cargo run`
 
-Note that the first build may take longer before dependencies are cached, subsequent builds will be faster. Additionally, if you need to specify different arguments to the build command, you may do so at the end of the command in the `<OPTIONAL-ARGS>` position. For instance, if you wanted to build an optimized release version, you would run the command above followed by `--release`. The resulting executable will be available in the target folder on your system, and can be run with:
+Flutter (current UI, desktop + mobile) build instructions: see
+[RustDesk's build docs](https://rustdesk.com/docs/en/dev/build/) and our CI workflow
+under `.github/workflows/`. The engine build process is unchanged from upstream
+RustDesk; only the defaults described above differ.
 
-```sh
-target/debug/rustdesk
-```
+## File structure
 
-Or, if you're running a release executable:
+- **`src/ghost_desk.rs`** — Ghost Desk branding + self-hosted server defaults (the one
+  file that makes this repo "Ghost Desk" rather than stock RustDesk).
+- **`libs/hbb_common`** — video codec, config, tcp/udp wrapper, protobuf, fs functions
+  for file transfer (RustDesk engine, submodule, unmodified).
+- **`libs/scrap`** — screen capture (RustDesk engine).
+- **`libs/enigo`** — platform-specific keyboard/mouse control (RustDesk engine).
+- **`libs/clipboard`** — clipboard file copy/paste for Windows, Linux, macOS.
+- **`src/server`** — audio/clipboard/input/video services and network connections.
+- **`src/client.rs`** — start a peer connection.
+- **`src/rendezvous_mediator.rs`** — talks to the rendezvous/relay server (by default,
+  our self-hosted one — see above).
+- **`src/platform`** — platform-specific code.
+- **`src/lang`** — UI strings; `en.rs` carries Ghost Desk's rebranded English strings,
+  other languages remain upstream RustDesk translations pending a full localization pass.
+- **`flutter`** — Flutter UI for desktop and mobile.
 
-```sh
-target/release/rustdesk
-```
+## License and attribution
 
-Please ensure that you run these commands from the root of the RustDesk repository, or the application may not find the required resources. Also note that other cargo subcommands such as `install` or `run` are not currently supported via this method as they would install or run the program inside the container instead of the host.
-
-## File Structure
-
-- **[libs/hbb_common](https://github.com/rustdesk/rustdesk/tree/master/libs/hbb_common)**: video codec, config, tcp/udp wrapper, protobuf, fs functions for file transfer, and some other utility functions
-- **[libs/scrap](https://github.com/rustdesk/rustdesk/tree/master/libs/scrap)**: screen capture
-- **[libs/enigo](https://github.com/rustdesk/rustdesk/tree/master/libs/enigo)**: platform specific keyboard/mouse control
-- **[libs/clipboard](https://github.com/rustdesk/rustdesk/tree/master/libs/clipboard)**: file copy and paste implementation for Windows, Linux, macOS.
-- **[src/ui](https://github.com/rustdesk/rustdesk/tree/master/src/ui)**: obsolete Sciter UI (deprecated)
-- **[src/server](https://github.com/rustdesk/rustdesk/tree/master/src/server)**: audio/clipboard/input/video services, and network connections
-- **[src/client.rs](https://github.com/rustdesk/rustdesk/tree/master/src/client.rs)**: start a peer connection
-- **[src/rendezvous_mediator.rs](https://github.com/rustdesk/rustdesk/tree/master/src/rendezvous_mediator.rs)**: Communicate with [rustdesk-server](https://github.com/rustdesk/rustdesk-server), wait for remote direct (TCP hole punching) or relayed connection
-- **[src/platform](https://github.com/rustdesk/rustdesk/tree/master/src/platform)**: platform specific code
-- **[flutter](https://github.com/rustdesk/rustdesk/tree/master/flutter)**: Flutter code for desktop and mobile
-- **[flutter/web/js](https://github.com/rustdesk/rustdesk/tree/master/flutter/web/v1/js)**: JavaScript for Flutter web client
-
-## Screenshots
-
-![Connection Manager](https://github.com/rustdesk/rustdesk/assets/28412477/db82d4e7-c4bc-4823-8e6f-6af7eadf7651)
-
-![Connected to a Windows PC](https://github.com/rustdesk/rustdesk/assets/28412477/9baa91e9-3362-4d06-aa1a-7518edcbd7ea)
-
-![File Transfer](https://github.com/rustdesk/rustdesk/assets/28412477/39511ad3-aa9a-4f8c-8947-1cce286a46ad)
-
-![TCP Tunneling](https://github.com/rustdesk/rustdesk/assets/28412477/78e8708f-e87e-4570-8373-1360033ea6c5)
-
+Ghost Desk is built on [RustDesk](https://github.com/rustdesk/rustdesk), licensed under
+AGPL-3.0 (see [`LICENCE`](LICENCE)). This repo remains AGPL-3.0; source availability
+obligations apply the same way they do upstream. Full credit to the RustDesk project and
+contributors for the underlying remote-control engine.
