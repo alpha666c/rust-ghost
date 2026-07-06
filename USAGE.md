@@ -75,6 +75,11 @@ trusted stores. On each managed Windows device, as Administrator:
 .\trust-ghost-desk-cert.ps1   # run from the same folder as ghost-desk-codesign.cer
 ```
 
+The script prints the certificate's subject/thumbprint/expiry so you can confirm it's the
+right one, and is safe to re-run (it skips stores that already trust it). If a device ever
+needs the trust removed (e.g. after rotating to a new cert), run
+`.\trust-ghost-desk-cert.ps1 -Uninstall`.
+
 Roll this out via GPO startup script or your RMM/MDM tool instead of running by hand on
 each machine one at a time. After this runs once, that device stops flagging
 Ghost Desk installers/updates as untrusted — no need to repeat it on every install.
